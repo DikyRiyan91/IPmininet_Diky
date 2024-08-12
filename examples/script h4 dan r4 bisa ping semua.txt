@@ -1,0 +1,118 @@
+from mininet.net import Mininet
+from mininet.node import Controller, RemoteController, OVSKernelSwitch
+from mininet.cli import CLI
+from mininet.link import TCLink
+from mininet.log import info  # Tambahkan ini untuk mengimpor fungsi info
+
+def configureIPv6(host, address, gateway=None):
+    """Mengkonfigurasi alamat IPv6 pada host"""
+    host.cmd(f'ip -6 addr add {address} dev {host.name}-eth0')
+    if gateway:
+        host.cmd(f'ip -6 route add default via {gateway} dev {host.name}-eth0')
+
+def main():
+    net = Mininet(controller=RemoteController, switch=OVSKernelSwitch, link=TCLink)
+
+    info('*** Menambahkan kontroler\n')
+    c0 = net.addController('c0', controller=RemoteController, port=6653)
+
+    info('*** Menambahkan host\n')
+    h1 = net.addHost('h1')
+    h2 = net.addHost('h2')
+    h3 = net.addHost('h3')
+    h4 = net.addHost('h4')
+
+    info('*** Menambahkan router\n')
+    r1 = net.addHost('r1')
+    r2 = net.addHost('r2')
+    r3 = net.addHost('r3')
+    r4 = net.addHost('r4')
+
+    info('*** Menambahkan switch\n')
+    s1 = net.addSwitch('s1')
+    s2 = net.addSwitch('s2')
+    s3 = net.addSwitch('s3')
+    s4 = net.addSwitch('s4')
+    s5 = net.addSwitch('s5')
+
+    info('*** Membuat link antara host dan switch serta switch dan router\n')
+    net.addLink(h1, s1)
+    net.addLink(h2, s2)
+    net.addLink(h3, s3)
+    net.addLink(h4, s4)
+
+    net.addLink(s1, r1)
+    net.addLink(s2, r2)
+    net.addLink(s3, r3)
+    net.addLink(s4, r4)
+
+    info('*** Membuat link antar router silang\n')
+    net.addLink(r1, r3)
+    net.addLink(r2, r4)
+
+    info('*** Membuat link antara switch 5 dan semua router\n')
+    net.addLink(s5, r1)
+    net.addLink(s5, r2)
+    net.addLink(s5, r3)
+    net.addLink(s5, r4)
+
+    info('*** Memulai jaringan\n')
+    net.build()
+    c0.start()
+    s1.start([c0])
+    s2.start([c0])
+    s3.start([c0])
+    s4.start([c0])
+    s5.start([c0])
+
+    info('*** Mengkonfigurasi alamat IPv6 untuk host\n')
+    configureIPv6(h1, '2001:db8:1::1/64', '2001:db8:1::2')
+    configureIPv6(h2, '2001:db8:2::1/64', '2001:db8:2::2')
+    configureIPv6(h3, '2001:db8:3::1/64', '2001:db8:3::2')
+    configureIPv6(h4, '2001:db8:4::1/64', '2001:db8:4::2')
+
+    info('*** Mengkonfigurasi alamat IPv6 untuk router\n')
+    r1.cmd('ip -6 addr add 2001:db8:1::2/64 dev r1-eth0')
+    r1.cmd('ip -6 addr add 2001:db8:5::1/64 dev r1-eth1')
+    r1.cmd('ip -6 addr add 2001:db8:7::1/64 dev r1-eth2')
+
+    r3.cmd('ip -6 addr add 2001:db8:3::2/64 dev r3-eth0')
+    r3.cmd('ip -6 addr add 2001:db8:5::2/64 dev r3-eth1')
+    r3.cmd('ip -6 addr add 2001:db8:7::3/64 dev r3-eth2')
+
+    r2.cmd('ip -6 addr add 2001:db8:2::2/64 dev r2-eth0')
+    r2.cmd('ip -6 addr add 2001:db8:6::1/64 dev r2-eth1')
+    r2.cmd('ip -6 addr add 2001:db8:7::2/64 dev r2-eth2')
+
+    r4.cmd('ip -6 addr add 2001:db8:4::2/64 dev r4-eth0')
+    r4.cmd('ip -6 addr add 2001:db8:6::2/64 dev r4-eth1')
+    r4.cmd('ip -6 addr add 2001:db8:7::4/64 dev r4-eth2')
+
+    info('*** Mengkonfigurasi routing silang\n')
+    r1.cmd('ip -6 route add 2001:db8:2::/64 via 2001:db8:7::2')  # r1 -> r2
+    r1.cmd('ip -6 route add 2001:db8:3::/64 via 2001:db8:5::2')  # r1 -> r3
+    r1.cmd('ip -6 route add 2001:db8:4::/64 via 2001:db8:7::4')  # r1 -> r4
+
+    r2.cmd('ip -6 route add 2001:db8:1::/64 via 2001:db8:7::1')  # r2 -> r1
+    r2.cmd('ip -6 route add 2001:db8:3::/64 via 2001:db8:7::3')  # r2 -> r3
+    r2.cmd('ip -6 route add 2001:db8:4::/64 via 2001:db8:6::2')  # r2 -> r4
+
+    r3.cmd('ip -6 route add 2001:db8:1::/64 via 2001:db8:5::1')  # r3 -> r1
+    r3.cmd('ip -6 route add 2001:db8:2::/64 via 2001:db8:7::2')  # r3 -> r2
+    r3.cmd('ip -6 route add 2001:db8:4::/64 via 2001:db8:7::4')  # r3 -> r4
+
+    r4.cmd('ip -6 route add 2001:db8:1::/64 via 2001:db8:7::1')  # r4 -> r1
+    r4.cmd('ip -6 route add 2001:db8:2::/64 via 2001:db8:6::1')  # r4 -> r2
+    r4.cmd('ip -6 route add 2001:db8:3::/64 via 2001:db8:7::3')  # r4 -> r3
+
+    info('*** Mengaktifkan IPv6 forwarding\n')
+    # Mengaktifkan IPv6 forwarding di semua host dan router
+    for node in [h1, h2, h3, h4, r1, r2, r3, r4]:
+        node.cmd('sysctl -w net.ipv6.conf.all.forwarding=1')
+
+    # Mulai CLI Mininet
+    CLI(net)
+    net.stop()
+
+if __name__ == '__main__':
+    main()

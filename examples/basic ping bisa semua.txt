@@ -1,0 +1,67 @@
+from mininet.net import Mininet
+from mininet.node import Controller, RemoteController, OVSKernelSwitch
+from mininet.cli import CLI
+from mininet.link import TCLink
+from mininet.log import info  # Tambahkan ini untuk mengimpor fungsi info
+
+def configureIPv6(host, address, gateway=None):
+    """Mengkonfigurasi alamat IPv6 pada host"""
+    host.cmd(f'ip -6 addr add {address} dev {host.name}-eth0')
+    if gateway:
+        host.cmd(f'ip -6 route add default via {gateway} dev {host.name}-eth0')
+
+def main():
+    net = Mininet(controller=RemoteController, switch=OVSKernelSwitch, link=TCLink)
+
+    # Tambah controller
+    c0 = net.addController('c0', controller=RemoteController, port=6653)
+
+    # Tambah hosts
+    h1 = net.addHost('h1')
+    h2 = net.addHost('h2')
+
+    # Tambah routers
+    r1 = net.addHost('r1')
+    r2 = net.addHost('r2')
+
+    # Tambah switches
+    s1 = net.addSwitch('s1')
+    s2 = net.addSwitch('s2')
+
+    # Tambah links
+    net.addLink(h1, s1)
+    net.addLink(h2, s2)
+    net.addLink(s1, r1)
+    net.addLink(s2, r2)
+    net.addLink(r1, r2)
+
+    # Konfigurasi jaringan
+    net.start()
+
+    # Konfigurasi IPv6 untuk host
+    configureIPv6(h1, '2001:db8:1::1/64', '2001:db8:1::2')
+    configureIPv6(h2, '2001:db8:2::1/64', '2001:db8:2::2')
+
+    # Konfigurasi IPv6 untuk router
+    r1.cmd('ip -6 addr add 2001:db8:1::2/64 dev r1-eth0')
+    r1.cmd('ip -6 addr add 2001:db8:3::1/64 dev r1-eth1')
+
+    r2.cmd('ip -6 addr add 2001:db8:2::2/64 dev r2-eth0')
+    r2.cmd('ip -6 addr add 2001:db8:3::2/64 dev r2-eth1')
+
+    # Konfigurasi routing pada router
+    r1.cmd('ip -6 route add 2001:db8:2::/64 via 2001:db8:3::2')
+    r2.cmd('ip -6 route add 2001:db8:1::/64 via 2001:db8:3::1')
+
+    info('*** Mengaktifkan IPv6 forwarding\n')
+    # Mengaktifkan IPv6 forwarding di semua host dan router
+    for node in [h1, h2, h3, h4, r1, r2, r3, r4]:
+        node.cmd('sysctl -w net.ipv6.conf.all.forwarding=1')
+
+
+    # Mulai CLI Mininet
+    CLI(net)
+    net.stop()
+
+if __name__ == '__main__':
+    main()

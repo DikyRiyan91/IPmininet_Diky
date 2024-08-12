@@ -1,0 +1,127 @@
+#!/usr/bin/env python
+
+from mininet.net import Mininet
+from mininet.node import Controller, RemoteController, OVSKernelSwitch
+from mininet.cli import CLI
+from mininet.log import setLogLevel, info
+from mininet.link import TCLink
+
+def createNetwork():
+    net = Mininet(controller=RemoteController, link=TCLink, switch=OVSKernelSwitch)
+
+    info('*** tambah kontroler\n')
+    c0 = net.addController('c0', controller=RemoteController, ip='127.0.0.1', port=6633)
+
+    info('*** tambah switches\n')
+    s1 = net.addSwitch('s1')
+    s2 = net.addSwitch('s2')
+    s3 = net.addSwitch('s3')
+    s4 = net.addSwitch('s4')
+    s5 = net.addSwitch('s5')
+
+    info('*** tambah routers\n')
+    r1 = net.addHost('r1')
+    r2 = net.addHost('r2')
+    r3 = net.addHost('r3')
+    r4 = net.addHost('r4')
+
+    info('*** tambah hosts\n')
+    h1 = net.addHost('h1', ip='2001:db8:1::2/64')
+    h2 = net.addHost('h2', ip='2001:db8:1::3/64')
+    h3 = net.addHost('h3', ip='2001:db8:2::2/64')
+    h4 = net.addHost('h4', ip='2001:db8:2::3/64')
+    h5 = net.addHost('h5', ip='2001:db8:3::2/64')
+    h6 = net.addHost('h6', ip='2001:db8:3::3/64')
+    h7 = net.addHost('h7', ip='2001:db8:4::2/64')
+    h8 = net.addHost('h8', ip='2001:db8:4::3/64')
+
+    info('*** membuat links\n')
+    # Gedung A
+    net.addLink(s1, h1)
+    net.addLink(s1, h2)
+    net.addLink(s1, r1)
+
+    # Gedung B
+    net.addLink(s2, h3)
+    net.addLink(s2, h4)
+    net.addLink(s2, r2)
+
+    # Gedung C
+    net.addLink(s3, h5)
+    net.addLink(s3, h6)
+    net.addLink(s3, r3)
+
+    # Gedung D
+    net.addLink(s4, h7)
+    net.addLink(s4, h8)
+    net.addLink(s4, r4)
+
+    # Antar Gedung
+    net.addLink(s5, r1)
+    net.addLink(s5, r2)
+    net.addLink(s5, r3)
+    net.addLink(s5, r4)
+    net.addLink(r1, r4)
+    net.addLink(r2, r3)
+
+    info('*** Starting network\n')
+    net.build()
+    c0.start()
+    s1.start([c0])
+    s2.start([c0])
+    s3.start([c0])
+    s4.start([c0])
+    s5.start([c0])
+
+    info('*** Configuring IPv6 addresses\n')
+    # Configure IPv6 addresses on routers
+    r1.cmd('ip -6 addr add 2001:db8:1::1/64 dev r1-eth0')
+    r2.cmd('ip -6 addr add 2001:db8:2::1/64 dev r2-eth0')
+    r3.cmd('ip -6 addr add 2001:db8:3::1/64 dev r3-eth0')
+    r4.cmd('ip -6 addr add 2001:db8:4::1/64 dev r4-eth0')
+
+    # Enable IPv6 forwarding on routers
+    for r in [r1, r2, r3, r4]:
+        r.cmd('sysctl -w net.ipv6.conf.all.forwarding=1')
+
+    # Configure default routes for hosts
+    h1.cmd('ip -6 route add default via 2001:db8:1::1')
+    h2.cmd('ip -6 route add default via 2001:db8:1::1')
+    h3.cmd('ip -6 route add default via 2001:db8:2::1')
+    h4.cmd('ip -6 route add default via 2001:db8:2::1')
+    h5.cmd('ip -6 route add default via 2001:db8:3::1')
+    h6.cmd('ip -6 route add default via 2001:db8:3::1')
+    h7.cmd('ip -6 route add default via 2001:db8:4::1')
+    h8.cmd('ip -6 route add default via 2001:db8:4::1')
+
+    # Ensure correct IPv6 addresses on all interfaces
+    h1.cmd('ip -6 addr add 2001:db8:1::2/64 dev h1-eth0')
+    h2.cmd('ip -6 addr add 2001:db8:1::3/64 dev h2-eth0')
+    h3.cmd('ip -6 addr add 2001:db8:2::2/64 dev h3-eth0')
+    h4.cmd('ip -6 addr add 2001:db8:2::3/64 dev h4-eth0')
+    h5.cmd('ip -6 addr add 2001:db8:3::2/64 dev h5-eth0')
+    h6.cmd('ip -6 addr add 2001:db8:3::3/64 dev h6-eth0')
+    h7.cmd('ip -6 addr add 2001:db8:4::2/64 dev h7-eth0')
+    h8.cmd('ip -6 addr add 2001:db8:4::3/64 dev h8-eth0')
+
+    info('*** Configuring hosts and routers\n')
+    # Ensure IPv6 is enabled on all interfaces and disable IPv4
+    for host in [h1, h2, h3, h4, h5, h6, h7, h8, r1, r2, r3, r4]:
+        host.cmd('sysctl -w net.ipv6.conf.all.disable_ipv6=0')
+        host.cmd('sysctl -w net.ipv6.conf.default.disable_ipv6=0')
+        host.cmd('sysctl -w net.ipv6.conf.lo.disable_ipv6=0')
+        host.cmd('sysctl -w net.ipv4.conf.all.disable_ipv4=1')
+        host.cmd('sysctl -w net.ipv4.conf.default.disable_ipv4=1')
+        host.cmd('sysctl -w net.ipv4.conf.lo.disable_ipv4=1')
+        for intf in host.intfList():
+            host.cmd(f'sysctl -w net.ipv6.conf.{intf.name}.disable_ipv6=0')
+            host.cmd(f'sysctl -w net.ipv4.conf.{intf.name}.disable_ipv4=1')
+
+    CLI(net)
+
+    info('*** Stopping network\n')
+    net.stop()
+
+if __name__ == '__main__':
+    setLogLevel('info')
+    createNetwork()
