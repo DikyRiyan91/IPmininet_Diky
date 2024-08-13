@@ -4,8 +4,8 @@ set -exo pipefail
 ### Install packages for Debian-based OS ###
 
 apt-get update && apt-get install -yq autoconf-archive bison build-essential cmake curl flex git gperf joe libboost-all-dev libcap-dev libdouble-conversion-dev libevent-dev libgflags-dev libgoogle-glog-dev libkrb5-dev libpcre3-dev libpthread-stubs0-dev libnuma-dev libsasl2-dev libsnappy-dev libsqlite3-dev libssl-dev libtool netcat-openbsd pkg-config sudo unzip wget python3-venv python-setuptools python3-setuptools python3-pip ccache
-apt-get install -yq gcc-'5' g++-'5'
-update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-'5' 40 --slave /usr/bin/g++ g++ /usr/bin/g++-'5'
+apt-get install -yq gcc-'7' g++-'7'
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-'7' 40 --slave /usr/bin/g++ g++ /usr/bin/g++-'5'
 update-alternatives --config gcc
 
 FOLLY_REV="3ceffd7d145be3c85a2aae39f99eb86ea730bdcc"
@@ -35,7 +35,7 @@ export MAKEFLAGS="$MAKEFLAGS -j $NPROC"
 export CCACHE_DIR='/ccache' CC="ccache ${CC:-gcc}" CXX="ccache ${CXX:-g++}"
 ### Diagnostics ###
 
-# Builder DebianSystemFBCodeBuilder(google/googletest:cmake_defines={u'BUILD_GTEST': u'ON', u'BUILD_SHARED_LIBS': u'OFF'}, gcc_version=u'5', facebook/zstd:git_hash=ShellQuoted(u'$(git describe --abbrev=0 --tags origin/master)'), hyperic/sigar:autoconf_options={u'CFLAGS': u'-fgnu89-inline'}, openr/build:cmake_defines={u'ADD_ROOT_TESTS': u'OFF'}, prefix=u'/usr/local', projects_dir=u'/usr/local/src', google/googletest:git_hash=u'release-1.8.1', wangle/wangle/build:cmake_defines={u'BUILD_TESTS': u'OFF'}, thom311/libnl:git_hash=u'libnl3_2_25', jedisct1/libsodium:git_hash=u'stable', ccache_dir=u'/ccache', make_parallelism=4, no1msd/mstch:git_hash=ShellQuoted(u'$(git describe --abbrev=0 --tags)'), zeromq/libzmq:git_hash=u'v4.2.5')
+# Builder DebianSystemFBCodeBuilder(google/googletest:cmake_defines={u'BUILD_GTEST': u'ON', u'BUILD_SHARED_LIBS': u'OFF'}, gcc_version=u'7', facebook/zstd:git_hash=ShellQuoted(u'$(git describe --abbrev=0 --tags origin/master)'), hyperic/sigar:autoconf_options={u'CFLAGS': u'-fgnu89-inline'}, openr/build:cmake_defines={u'ADD_ROOT_TESTS': u'OFF'}, prefix=u'/usr/local', projects_dir=u'/usr/local/src', google/googletest:git_hash=u'release-1.8.1', wangle/wangle/build:cmake_defines={u'BUILD_TESTS': u'OFF'}, thom311/libnl:git_hash=u'libnl3_2_25', jedisct1/libsodium:git_hash=u'stable', ccache_dir=u'/ccache', make_parallelism=4, no1msd/mstch:git_hash=ShellQuoted(u'$(git describe --abbrev=0 --tags)'), zeromq/libzmq:git_hash=u'v4.2.5')
 hostname
 cat /etc/issue || echo no /etc/issue
 g++ --version || echo g++ not installed
